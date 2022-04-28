@@ -1,12 +1,43 @@
 .pie-container {
     border: 1px solid red;
+    position: relative;
+    margin: 50px;
+    padding: 50px;
+    // width: 800px;
+    // height: 800px;
     svg {
-        width: 100%;
-        height: 100%;
+        width: 650px;
+        height: 350px;
+        border: 1px solid blue;
+        .slices {
+            border: 2px solid yellow;
+        }
+        // width: 500px;
+        // height: 300px;
+        // border: 1px solid blue;
+        // margin: auto;
+
+        .slice {
+            stroke-width: 2px;
+            border: 1px solid blue;
+        }
+
+        text {
+            color: red;
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 1px;
+            fill: rgba(90, 90, 90.3);
+            font-weight: bold;
+        }
     }
 
-    path.slice {
-        stroke-width: 2px;
+    g {
+        border: 1px solid red;
+        transform: translate(300px, 150px);
+        path {
+            stroke: white;
+            stroke-width: 3px;
+        }
     }
 
     polyline {
