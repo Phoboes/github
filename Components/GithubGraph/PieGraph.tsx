@@ -1,178 +1,128 @@
 import style from "./Graph.module.scss";
 import * as d3 from "d3";
-import { useRef, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 
 const PieGraph = ({ data, domains }) => {
-  const ref = useRef();
-  const svg = d3.select(ref.current);
+  const [svg, setSvg] = useState(null);
 
-  const dataShuffleHandler = (data) => {
-    const returnArr = [];
-    for (let i = 0; i < data.length; i++) {
-      i % 2 === 0 ? returnArr.unshift(data[i]) : returnArr.push(data[i]);
+  // Await a ref before rendering the graph
+  const ref = useCallback((node) => {
+    if (node === null) {
+    } else {
+      setSvg(d3.select(node));
     }
-    return returnArr;
-  };
+  }, []);
 
-  data = dataShuffleHandler(data);
-
+  // Listen for the 'svg' state to be set, once it is, render the graph
   useEffect(() => {
-    // return () => {
-    //   second
-    // }
-    render(data);
-  }, [ref.current]);
+    if (svg !== null) {
+      render(data);
+    }
+  }, [svg]);
 
-  var width = 300,
-    height = 300,
-    radius = Math.min(width, height) / 2;
+  // Svg dimensions
+  const width = 300;
+  const height = 280;
+  const radius = Math.min(width, height) / 2;
 
-  var pie = d3
+  const pie = d3
     .pie()
     .sort(null)
     .value(function (d) {
       return d.value;
     });
 
-  var arc = d3
+  const arc = d3
     .arc()
-    .outerRadius(radius * 0.8)
-    .innerRadius(radius * 0.4);
+    .innerRadius(radius - 100)
+    .outerRadius(radius - 50);
 
-  var outerArc = d3
-    .arc()
-    .innerRadius(radius * 0.9)
-    .outerRadius(radius * 0.9);
-
-  // svg.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-
-  var key = function (d) {
+  const key = function (d) {
     return d.data.label;
   };
 
-  var color = d3
-    .scaleOrdinal()
-    .domain(domains)
-    .range([
-      "rgb(255,30,100)",
-      "rgb(30, 255, 10)",
-      "#7b6888",
-      "#6b486b",
-      "#a05d56",
-      "#d0743c",
-      "#ff8c00",
-    ]);
-
   function render(data) {
-    /* ------- PIE SLICES -------*/
-    var slice = svg
+    svg.attr("width", width).attr("height", height).append("g");
+
+    // ----------------------------------
+    //     Graph colour range
+    // ----------------------------------
+
+    const color = d3
+      .scaleOrdinal()
+      // .scaleLinear()
+      .domain(domains)
+      .range([
+        "#0d0887",
+        "#41049d",
+        "#6a00a8",
+        "#8f0da4",
+        "#b12a90",
+        "#cc4778",
+        "#e16462",
+        "#f2844b",
+        "#fca636",
+        "#fcce25",
+        "#f0f921",
+      ]);
+
+    // ----------------------------------
+    //      Pie graph slices
+    // ----------------------------------
+
+    const slice = svg
       .select(".slices")
       .selectAll("path.slice")
-      .data(pie(data), key);
-    slice
+      .data(pie(data), key)
       .enter()
       .insert("path")
       .style("fill", function (d) {
         return color(d.data.label);
       })
-      .attr("class", "slice");
-
-    slice
-      .transition()
-      .duration(1000)
-      .attrTween("d", function (d) {
-        this._current = this._current || d;
-        var interpolate = d3.interpolate(this._current, d);
-        this._current = interpolate(0);
-        return function (t) {
-          return arc(interpolate(t));
-        };
-      });
-
+      .attr("class", "slice")
+      .style("stroke", "#ffffff")
+      .style("stroke-width", 0)
+      .attr("d", arc)
+      .attr("transform", `translate( ${radius - 40}, ${radius - 40} )`);
     slice.exit().remove();
 
-    /* ------- TEXT LABELS -------*/
+    // The transform offsets the graph by it's radius, otherwise it sets itself @ 0x0 in the svg (the center of the pie graph)
 
-    var text = svg.select(".labels").selectAll("text").data(pie(data), key);
+    // ----------------------------------
+    //       Legend colour map & text
+    // ----------------------------------
 
-    text
+    const legend = svg
+      .selectAll(".legend")
+      .data(pie(data))
       .enter()
+      .append("g")
+      .attr("transform", function (d, i) {
+        return "translate(" + (radius + 80) + "," + (i * 15 + 20) + ")";
+      })
+      .attr("class", "legend");
+
+    legend
+      .append("rect")
+      .attr("width", 10)
+      .attr("height", 10)
+      .attr("fill", function (d, i) {
+        return color(d.data.label);
+      });
+
+    legend
       .append("text")
-      .attr("dy", ".35em")
       .text(function (d) {
         return d.data.label;
-      });
-
-    function midAngle(d) {
-      return d.startAngle + (d.endAngle - d.startAngle) / 2;
-    }
-
-    text
-      .transition()
-      .duration(1000)
-      .attrTween("transform", function (d) {
-        this._current = this._current || d;
-        var interpolate = d3.interpolate(this._current, d);
-        this._current = interpolate(0);
-        return function (t) {
-          var d2 = interpolate(t);
-          var pos = outerArc.centroid(d2);
-          pos[0] = radius * (midAngle(d2) < Math.PI ? 1 : -1);
-          return "translate(" + pos + ")";
-        };
       })
-      .styleTween("text-anchor", function (d) {
-        this._current = this._current || d;
-        var interpolate = d3.interpolate(this._current, d);
-        this._current = interpolate(0);
-        return function (t) {
-          var d2 = interpolate(t);
-          return midAngle(d2) < Math.PI ? "start" : "end";
-        };
-      });
-
-    text.exit().remove();
-
-    /* ------- SLICE TO TEXT POLYLINES -------*/
-
-    var polyline = svg
-      .select(".lines")
-      .selectAll("polyline")
-      .data(pie(data), key);
-
-    polyline.enter().append("polyline");
-
-    polyline
-      .transition()
-      .duration(1000)
-      .attrTween("points", function (d) {
-        this._current = this._current || d;
-        var interpolate = d3.interpolate(this._current, d);
-        this._current = interpolate(0);
-        return function (t) {
-          var d2 = interpolate(t);
-          var pos = outerArc.centroid(d2);
-          pos[0] = radius * 0.95 * (midAngle(d2) < Math.PI ? 1 : -1);
-          return [arc.centroid(d2), outerArc.centroid(d2), pos];
-        };
-      });
-
-    polyline.exit().remove();
+      .style("font-size", 12)
+      .attr("y", 10)
+      .attr("x", 14);
   }
-
-  // Await ref.current before render, "css" is the only pie section displaying currently
-
-  if (ref.current !== undefined) {
-    render(data);
-  }
-
-  console.log(data);
 
   return (
     <svg ref={ref}>
       <g className="slices" />
-      <g className="labels" />
-      <g className="lines" />
     </svg>
   );
 };

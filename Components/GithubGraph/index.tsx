@@ -23,8 +23,12 @@ const Index = ({ languages }) => {
       splitObj["label"] = `${key}`;
       splitObj["value"] = `${value}`;
       data.unshift(splitObj);
-      domains.unshift(key);
+      domains.push(key);
     }
+    // Sort by asc. value
+    data.sort((a, b) => {
+      return b.value - a.value;
+    });
     setGraphState({ data, domains });
   };
 
@@ -37,8 +41,6 @@ const Index = ({ languages }) => {
       graph = <PieGraph data={graphState.data} domains={graphState.domains} />;
     }
   }
-
-  console.log(graphState);
 
   return (
     <>
